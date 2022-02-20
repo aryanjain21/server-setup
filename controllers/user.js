@@ -1,69 +1,288 @@
+const async = require('async');
 const User = require('../models/user');
+const Address = require('../models/address');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
-const { decrypt } = require('../utils/encDecr');
+const { decrypt, encrypt } = require('../utils/encDecr');
 
 module.exports = {
-    signup: async (req, res) => {
-        try {
-            let userEmail = await User.findOne({email: req.body.email})
-            if(userEmail) {
-                throw {message: 'User already exist.'}
+    signup: (req, res) => {
+        async.waterfall([
+            (nextCall) => {
+                req.body.email = req.body.email.toLowerCase();
+                nextCall(null, req.body)
+            },
+            (body, nextCall) => {
+                User.findOne({ email: body.email }, (err, user) => {
+                    if (err) {
+                        return nextCall(err);
+                    } else if (user) {
+                        return nextCall({
+                            message: 'User already exist.'
+                        });
+                    } else {
+                        nextCall(null, body);
+                    }
+                });
+            },
+            (body, nextCall) => {
+                const user = new User(body);
+                user.save((err, user) => {
+                    if (err) {
+                        return nextCall(err);
+                    }
+                    nextCall(null);
+                });
             }
-            const user = new User(req.body);
-            let newUser = await user.save();
-            let payload = {
-                _id: newUser._id,
-                email: newUser.email 
+        ], (err, resp) => {
+            if (err) {
+                return res.status(400).json({
+                    message: (err && err.message) || 'Oops!! failed to create user'
+                });
             }
-            let token = jwt.sign(payload, config.secret, {
-                expiresIn: 24*60*60*2
-            });
-            newUser = newUser.toJSON();
-            newUser.token = token;
-            delete newUser.password;
             return res.json({
                 status: 200,
-                message: 'User created successfully',
-                data: newUser
+                message: 'User created successfully'
             });
-        } catch (error) {
-            return res.status(400).json({
-                message: (error && error.message) || 'Oops!! failed to create user'
-            });
-        }
+        });
     },
 
     login: async (req, res) => {
-        try {
-            // console.log('login', req.body);
-            let user = await User.findOne({email: req.body.email})
-            if(!user) {
-                throw {message: 'User does not exist'}
+        async.waterfall([
+            (nextCall) => {
+                req.body.email = req.body.email.toLowerCase();
+                nextCall(null, req.body);
+            },
+            (body, nextCall) => {
+                User.findOne({ email: body.email }, (err, user) => {
+                    if (err) {
+                        return nextCall(err);
+                    } else if (!user) {
+                        return nextCall({
+                            message: 'User does not exist'
+                        });
+                    } else {
+                        let checkPassword = decrypt(req.body.password, user.password);
+                        if (checkPassword) {
+                            nextCall(null, user);
+                        } else {
+                            return nextCall({
+                                message: 'Email/Password is incorrect'
+                            });
+                        }
+                    }
+                });
+            },
+            (user, nextCall) => {
+                let payload = {
+                    _id: user._id,
+                    email: user.email
+                }
+                let token = jwt.sign(payload, config.secret, {
+                    expiresIn: 24 * 60 * 60 * 2
+                });
+                user = user.toJSON();
+                user.token = token;
+                delete user.password;
+                nextCall(null, user);
             }
-            let checkPassword = decrypt(req.body.password, user.password);
-            if(!checkPassword) {
-                throw {message: 'Email/Password is incorrect'}
+        ], (err, resp) => {
+            if (err) {
+                return res.status(401).json({
+                    message: (err && err.message) || 'Oops!! failed to login'
+                });
             }
-            let payload = {
-                _id: user._id,
-                email: user.email 
-            }
-            let token = jwt.sign(payload, config.secret, {
-                expiresIn: 24*60*60*2
-            });
-            user = user.toJSON();
-            user.token = token;
-            delete user.password;
             return res.json({
                 status: 200,
                 message: 'Login successful!',
-                data: user
-            })
-        } catch (error) {
-            return res.status(401).json({
-                message: (error && error.message) || 'Oops!! failed to login'
-            })
-        }
+                data: resp
+            });
+        });
+    },
+
+    changePassword: (req, res) => {
+        async.waterfall([
+            (nextCall) => {
+                if (!req.body.password || !req.body.newPassword) {
+                    return nextCall({
+                        message: 'Please enter all the fields'
+                    });
+                }
+                nextCall(null, req.body);
+            },
+            (body, nextCall) => {
+                User.findById(req.user._id, (err, user) => {
+                    if (err) {
+                        return nextCall(err);
+                    }
+                    nextCall(null, user, body)
+                });
+            },
+            (user, body, nextCall) => {
+                let matchPassword = decrypt(body.password, user.password);
+                if (matchPassword) {
+                    let newPassword = encrypt(body.newPassword);
+                    User.findByIdAndUpdate(user._id, { password: newPassword }, (err, updatedUser) => {
+                        if (err) {
+                            return nextCall(err);
+                        }
+                        nextCall(null, null);
+                    });
+                } else {
+                    nextCall({
+                        message: "Password doesn't match. Please enter correct old password!"
+                    });
+                }
+            }
+        ], (err, resp) => {
+            if (err) {
+                return res.status(401).json({
+                    message: (err && err.message) || 'Oops!! failed to change password'
+                });
+            }
+            return res.json({
+                status: 200,
+                message: 'Password changed successfully!'
+            });
+        });
+    },
+
+    addAddress: (req, res) => {
+        async.waterfall([
+            (nextCall) => {
+                if (!req.body.street || !req.body.mobileNumber || !req.body.city || !req.body.state || !req.body.pincode || !req.body.country) {
+                    return nextCall({
+                        message: 'Please provide all the required fields...'
+                    });
+                }
+                nextCall(null, req.body);
+            },
+            (body, nextCall) => {
+                let address = new Address({
+                    userId: req.user._id,
+                    street: body.street,
+                    landmark: body.landmark,
+                    mobileNumber: body.mobileNumber,
+                    city: body.city,
+                    state: body.state,
+                    pincode: body.pincode,
+                    country: body.country
+                });
+                address.save((err, newAddress) => {
+                    if (err) {
+                        return nextCall(err);
+                    }
+                    nextCall(null, newAddress);
+                })
+            }
+        ], (err, resp) => {
+            if (err) {
+                return res.status(401).json({
+                    message: (err && err.message) || 'Oops!! failed to add new address'
+                });
+            }
+            return res.json({
+                status: 200,
+                message: 'Added address successfully!'
+            });
+        });
+    },
+
+    getAllAddress: (req, res) => {
+        async.waterfall([
+            (nextCall) => {
+                Address.find({ userId: req.user._id }).sort({ CreatedAt: -1 }).exec((err, addressList) => {
+                    if (err) {
+                        return nextCall(err);
+                    }
+                    nextCall(null, addressList);
+                });
+            }
+        ], (err, resp) => {
+            if (err) {
+                return res.status(401).json({
+                    message: (err && err.message) || 'Oops!! failed to get address'
+                });
+            }
+            return res.json({
+                status: 200,
+                message: 'Get address successfully!',
+                data: resp
+            });
+        });
+    },
+
+    updateAddress: (req, res) => {
+        async.waterfall([
+            (nextCall) => {
+                if (!req.body.addressId) {
+                    return nextCall({
+                        message: "Address update failed."
+                    });
+                }
+                nextCall(null, req.body)
+            },
+            (body, nextCall) => {
+                Address.findByIdAndUpdate(
+                    body.addressId,
+                    {
+                        name: body.name,
+                        street: body.street,
+                        landmark: body.landmark,
+                        mobileNumber: body.mobileNumber,
+                        city: body.city,
+                        state: body.state,
+                        pincode: body.pincode,
+                        country: body.country
+                    },
+                    { new: true },
+                    (err, updatedAddress) => {
+                        if (err) {
+                            return nextCall(err);
+                        }
+                        nextCall(null, updatedAddress);
+                    }
+                )
+            }
+        ], (err, resp) => {
+            if (err) {
+                return res.status(401).json({
+                    message: (err && err.message) || 'Oops!! failed to get address'
+                });
+            }
+            return res.json({
+                status: 200,
+                message: 'Get address successfully!',
+                data: resp
+            });
+        });
+    },
+
+    deleteAddress: (req, res) => {
+        async.waterfall([
+            (nextCall) => {
+                Address.findByIdAndDelete({_id: req.body.addressId}, (err, address) => {
+                    if(err) {
+                        return nextCall(err)
+                    } else if(!address) {
+                        nextCall({
+                            message: 'Address does not exist...'
+                        });
+                    } else {
+                        nextCall(null, null);
+                    }
+                });
+            }
+        ], (err, resp) => {
+            if (err) {
+                return res.status(401).json({
+                    message: (err && err.message) || 'Oops!! failed to delete address'
+                });
+            }
+            return res.json({
+                status: 200,
+                message: 'Address deleted successfully!'
+            });
+        });
     }
 }

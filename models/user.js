@@ -3,11 +3,7 @@ const { Schema } = mongoose;
 const { encrypt } = require('../utils/encDecr');
 
 const userSchema = new Schema({
-    firstName: {
-        type: String,
-        required: true
-    },
-    lastName: {
+    fullName: {
         type: String,
         required: true
     },
