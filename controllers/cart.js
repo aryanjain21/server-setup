@@ -9,7 +9,7 @@ module.exports = {
             (nextCall) => {
                 if (!req.body.productId) {
                     return nextCall({
-                        message: "Product not available."
+                        message: "Product id is required."
                     });
                 }
                 nextCall(null, req.body)
@@ -39,7 +39,7 @@ module.exports = {
                     }
                     cart.products.push({
                         _id: product._id,
-                        quantity: 1
+                        qty: 1
                     });
                     let totalCartValue = parseInt(cart.cartValue) + parseInt(product.price);
 
