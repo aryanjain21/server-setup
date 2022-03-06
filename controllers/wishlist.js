@@ -163,18 +163,18 @@ module.exports = {
                     if(err) {
                         return nextCall(err);
                     }
-                    nextCall(null, product);
+                    nextCall(null, product, body);
                 });
             },
-            (product, nextCall) => {
+            (product, body, nextCall) => {
                 Cart.findOne({userId: req.user._id}, (err, cart) => {
                     if(err) {
                         return nextCall(err);
                     };
-                    nextCall(null, product, cart);
+                    nextCall(null, product, cart, body);
                 });
             },
-            (product, cart, nextCall) => {
+            (product, cart, body, nextCall) => {
                 let productInCart = cart ? cart.products.some(item => item._id == product._id) : false;
                 if(!productInCart) {
                     if(cart) {
@@ -194,7 +194,7 @@ module.exports = {
                                 if (err) {
                                     return nextCall(err);
                                 }
-                                nextCall(null, product);
+                                nextCall(null, product, body);
                             }
                         );
                     } else {
@@ -212,13 +212,36 @@ module.exports = {
                             if (err) {
                                 return nextCall(err)
                             }
-                            nextCall(null, product)
+                            nextCall(null, product, body)
                         })
                     }
                 } else {
-                    nextCall(null, product);
+                    nextCall(null, product, body);
                 }
-            }
+            },
+            (product, body, nextCall) => {
+                Wishlist.findOne({ userId: req.user._id }).populate('products._id').exec((err, wishlist) => {
+                    if (err) {
+                        return nextCall(err);
+                    }
+                    nextCall(null, body, wishlist);
+                });
+            },
+            (body, wishlist, nextCall) => {
+                let updatedProducts = wishlist.products.filter(item => item._id._id != body.productId)
+                Wishlist.findByIdAndUpdate(
+                    wishlist._id,
+                    {
+                        products: updatedProducts
+                    },
+                    { new: true },
+                    (err, updatedWishlist) => {
+                        if (err) {
+                            return nextCall(err);
+                        }
+                        nextCall(null, updatedWishlist);
+                    })
+            },
         ], (error, response) => {
             if (error) {
                 return res.status(400).json({

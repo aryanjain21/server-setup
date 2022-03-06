@@ -242,14 +242,13 @@ module.exports = {
                         productInCart: updatedProducts.length,
                         cartValue: cartValue
                     },
-                    { new: true },
-                    (err, updatedCart) => {
-                        if (err) {
-                            return nextCall(err)
-                        }
-                        nextCall(null, updatedCart)
+                    { new: true }
+                ).populate('products._id').exec((err, updatedCart) => {
+                    if (err) {
+                        return nextCall(err)
                     }
-                )
+                    nextCall(null, updatedCart)
+                });
             }
         ], (error, response) => {
             if (error) {

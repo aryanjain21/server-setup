@@ -63,7 +63,7 @@ module.exports = {
                     let search = {
                         $or: [
                             {
-                                'name': regex
+                                'title': regex
                             },
                             {
                                 'brand': regex
@@ -112,13 +112,14 @@ module.exports = {
                                 "description": "$description",
                                 "brand": "$brand",
                                 "image": "$image",
+                                "size": "$size",
                                 "discount": "$discount",
                                 "created_at": "$created_at",
                                 "updated_at": "$updated_at"
                             }
                         }
                     }
-                })
+                });
                 nextCall(null, aggregateQuery)
             },
             (aggregateQuery, nextCall) => {

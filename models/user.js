@@ -18,6 +18,9 @@ const userSchema = new Schema({
         minlength: 6,
         maxlength: 16
     },
+    stripeId: {
+        type: String
+    },
     CreatedAt: {
         type: Date
     },

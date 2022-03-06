@@ -35,6 +35,10 @@ const addressSchema = new Schema({
         type: String,
         required: true,
     },
+    selectedAddress: {
+        type: Boolean,
+        default: false
+    },
     CreatedAt: {
         type: Date
     },

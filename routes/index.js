@@ -5,6 +5,7 @@ const UserController = require('../controllers/user');
 const ProductController = require('../controllers/product');
 const CartController = require('../controllers/cart');
 const WishlistController = require('../controllers/wishlist');
+const PaymentController = require('../controllers/payment');
 const authenticated = require('../middleware/authenticated');
 const isUserPresent = require('../middleware/isUsePresent');
 
@@ -32,5 +33,7 @@ router.post('/api/add-to-wishlist', WishlistController.addToWishlist);
 router.get('/api/get-wishlist',WishlistController.getWishlist);
 router.post('/api/remove-from-wishlist', WishlistController.removeFromWishlist);
 router.post('/api/move-to-cart', WishlistController.moveToCart);
+
+router.post('/api/payment', PaymentController.payment);
 
 module.exports = router;
