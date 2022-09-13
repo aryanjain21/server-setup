@@ -55,9 +55,6 @@ module.exports = {
                             if (err) {
                                 return nextCall(err)
                             }
-                            // updatedCart.products.map(item => {
-                            //     item.image = config.imgUrl + '/products/' + item.image;
-                            // })
                             nextCall(null, updatedCart)
                         }
                     )
