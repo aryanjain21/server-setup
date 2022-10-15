@@ -35,5 +35,6 @@ router.post('/api/remove-from-wishlist', WishlistController.removeFromWishlist);
 router.post('/api/move-to-cart', WishlistController.moveToCart);
 
 router.post('/api/payment', PaymentController.payment);
+router.post('/api/order', PaymentController.getOrderDetail);
 
 module.exports = router;
