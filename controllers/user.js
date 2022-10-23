@@ -88,7 +88,7 @@ module.exports = {
             }
         ], (err, resp) => {
             if (err) {
-                return res.status(401).json({
+                return res.status(400).json({
                     message: (err && err.message) || 'Oops!! failed to login'
                 });
             }
@@ -136,7 +136,7 @@ module.exports = {
             }
         ], (err, resp) => {
             if (err) {
-                return res.status(401).json({
+                return res.status(400).json({
                     message: (err && err.message) || 'Oops!! failed to change password'
                 });
             }
@@ -177,7 +177,7 @@ module.exports = {
             }
         ], (err, resp) => {
             if (err) {
-                return res.status(401).json({
+                return res.status(400).json({
                     message: (err && err.message) || 'Oops!! failed to add new address'
                 });
             }
@@ -200,7 +200,7 @@ module.exports = {
             }
         ], (err, resp) => {
             if (err) {
-                return res.status(401).json({
+                return res.status(0).json({
                     message: (err && err.message) || 'Oops!! failed to get address'
                 });
             }
@@ -246,7 +246,7 @@ module.exports = {
             }
         ], (err, resp) => {
             if (err) {
-                return res.status(401).json({
+                return res.status(400).json({
                     message: (err && err.message) || 'Oops!! failed to get address'
                 });
             }
@@ -275,7 +275,7 @@ module.exports = {
             }
         ], (err, resp) => {
             if (err) {
-                return res.status(401).json({
+                return res.status(400).json({
                     message: (err && err.message) || 'Oops!! failed to delete address'
                 });
             }
